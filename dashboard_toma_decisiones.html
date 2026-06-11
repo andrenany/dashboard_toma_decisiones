@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · Toma de Decisiones E-Commerce Brasil</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --card:     #21253a;
+      --border:   #2e3350;
+      --accent:   #4f7df3;
+      --accent2:  #38c4a8;
+      --warn:     #f59e0b;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+      --text:     #e2e8f0;
+      --muted:    #8892aa;
+      --radius:   10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    header p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── MAIN LAYOUT ─────────────────────────────── */
+    main { padding: 28px 32px; max-width: 1440px; margin: 0 auto; }
+
+    section { margin-bottom: 40px; }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── GRID HELPERS ────────────────────────────── */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr;               gap: 16px; }
+    .g3 { display: grid; grid-template-columns: repeat(3,1fr);         gap: 16px; }
+    .g4 { display: grid; grid-template-columns: repeat(4,1fr);         gap: 16px; }
+    .g6 { display: grid; grid-template-columns: repeat(6,1fr);         gap: 12px; }
+    .g2-1 { display: grid; grid-template-columns: 2fr 1fr;             gap: 16px; }
+    .g1-2 { display: grid; grid-template-columns: 1fr 2fr;             gap: 16px; }
+    @media (max-width: 1100px) { .g2,.g3,.g4,.g2-1,.g1-2 { grid-template-columns:1fr 1fr; } }
+    @media (max-width: 700px)  { .g2,.g3,.g4,.g6,.g2-1,.g1-2 { grid-template-columns:1fr; } }
+
+    /* ── CARD ────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── KPI STATS ───────────────────────────────── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; }
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 600px)  { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+    }
+    .kpi-label  { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .kpi-value  { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+    .kpi-sub    { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .kpi.pos .kpi-value { color: var(--success); }
+    .kpi.warn .kpi-value { color: var(--warn); }
+    .kpi.acc  .kpi-value { color: var(--accent); }
+
+    /* ── CHART WRAPPER ───────────────────────────── */
+    .chart-wrap { position: relative; }
+    .chart-caption {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    /* ── INSIGHT CARDS ───────────────────────────── */
+    .insight {
+      border-left: 3px solid var(--accent);
+      background: var(--card);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 18px;
+    }
+    .insight.warn { border-color: var(--warn); }
+    .insight.success { border-color: var(--success); }
+    .insight.danger { border-color: var(--danger); }
+
+    .insight-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .insight.warn .insight-tag { color: var(--warn); }
+    .insight.success .insight-tag { color: var(--success); }
+    .insight.danger .insight-tag { color: var(--danger); }
+
+    .insight-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .insight-body  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .insight-metric {
+      display: inline-block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── SEGMENT CARDS ───────────────────────────── */
+    .seg-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .seg-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .seg-name { font-size: 14px; font-weight: 700; }
+    .seg-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      background: var(--surface);
+    }
+    .pill-green  { color: var(--success); border: 1px solid var(--success); }
+    .pill-blue   { color: var(--accent);  border: 1px solid var(--accent);  }
+    .pill-warn   { color: var(--warn);    border: 1px solid var(--warn);    }
+    .pill-danger { color: var(--danger);  border: 1px solid var(--danger);  }
+
+    .seg-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .seg-m-label { font-size: 10px; color: var(--muted); }
+    .seg-m-val   { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+    .seg-action {
+      background: var(--surface);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .seg-action strong { color: var(--text); }
+
+    /* ── RULES TABLE ─────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface); }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    td {
+      padding: 10px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface); }
+    .lift-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lift-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .lift-fill {
+      height: 100%;
+      background: var(--accent2);
+      border-radius: 3px;
+    }
+
+    /* ── SIM TABLE ───────────────────────────────── */
+    .sim-row { display: grid; grid-template-columns: repeat(6,1fr); gap: 0; }
+    .sim-cell {
+      padding: 9px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sim-cell.head { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; background: var(--surface); }
+    .roi-pos { color: var(--success); font-weight: 700; }
+    .roi-neg { color: var(--danger); font-weight: 700; }
+
+    /* ── FOOTER ──────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 32px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dashboard · Toma de Decisiones E-Commerce</h1>
+    <p>Brazilian E-Commerce Public Dataset &nbsp;·&nbsp; Oct 2016 – Ago 2018 &nbsp;·&nbsp; 113.390 transacciones</p>
+  </div>
+  <span class="badge">BIY7121 Minería de Datos</span>
+</header>
+
+<main>
+
+  <!-- ══ KPIs ══════════════════════════════════════════════ -->
+  <section>
+    <div class="section-title">Indicadores Clave de Desempeño</div>
+    <div class="kpi-grid">
+      <div class="kpi acc">
+        <div class="kpi-label">Ingresos Totales</div>
+        <div class="kpi-value">R$19.5M</div>
+        <div class="kpi-sub">2016 – 2018</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Clientes Únicos</div>
+        <div class="kpi-value">92.081</div>
+        <div class="kpi-sub">customer_unique_id</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Órdenes Únicas</div>
+        <div class="kpi-value">95.128</div>
+        <div class="kpi-sub">order_id</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ticket Promedio</div>
+        <div class="kpi-value">R$205</div>
+        <div class="kpi-sub">por orden</div>
+      </div>
+      <div class="kpi warn">
+        <div class="kpi-label">Flete Promedio</div>
+        <div class="kpi-value">R$20</div>
+        <div class="kpi-sub">freight_value media</div>
+      </div>
+      <div class="kpi pos">
+        <div class="kpi-label">Entrega a Tiempo</div>
+        <div class="kpi-value">92.2%</div>
+        <div class="kpi-sub">prom. 12 días</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ TENDENCIA + PAGOS ══════════════════════════════════ -->
+  <section>
+    <div class="section-title">Tendencia de Ingresos y Métodos de Pago</div>
+    <div class="g2-1">
+      <div class="card">
+        <div class="card-title">Ingresos Mensuales (R$)</div>
+        <div class="chart-wrap"><canvas id="revChart" height="200"></canvas></div>
+        <div class="chart-caption">Fuente: order_purchase_timestamp · payment_value</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribución de Métodos de Pago</div>
+        <div class="chart-wrap"><canvas id="payChart" height="200"></canvas></div>
+        <div class="chart-caption">Fuente: payment_type</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ GEOGRAFÍA + CATEGORÍAS ═══════════════════════════ -->
+  <section>
+    <div class="section-title">Geografía y Categorías de Productos</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Órdenes por Estado (Top 8)</div>
+        <div class="chart-wrap"><canvas id="stateChart" height="220"></canvas></div>
+        <div class="chart-caption">Fuente: customer_state</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 8 Categorías Vendidas</div>
+        <div class="chart-wrap"><canvas id="catChart" height="220"></canvas></div>
+        <div class="chart-caption">Fuente: product_category_name</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ HÁBITOS TEMPORALES ═════════════════════════════════ -->
+  <section>
+    <div class="section-title">Hábitos de Compra — Comportamiento Temporal</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Órdenes por Día de la Semana</div>
+        <div class="chart-wrap"><canvas id="dayChart" height="200"></canvas></div>
+        <div class="chart-caption">Fuente: day_of_purchase</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribución Horaria de Compras</div>
+        <div class="chart-wrap"><canvas id="hourChart" height="200"></canvas></div>
+        <div class="chart-caption">Fuente: order_purchase_timestamp · hora local UTC-3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ INSIGHTS ══════════════════════════════════════════ -->
+  <section>
+    <div class="section-title">Insights Estratégicos Destacados</div>
+    <div class="g3">
+
+      <div class="insight danger">
+        <div class="insight-tag">Insight 1 · Retención</div>
+        <div class="insight-title">Umbral de Flete que Destruye la Retención</div>
+        <div class="insight-body">
+          El flete superior a <strong>R$50</strong> colapsa la tasa de retención de 3.27% a solo 1.46%, una caída del <strong>−55%</strong>. Por debajo de ese umbral la retención se mantiene estable en torno al 3%.
+        </div>
+        <span class="insight-metric">Acción: Subsidiar envío cuando flete &gt; R$50</span>
+      </div>
+
+      <div class="insight warn">
+        <div class="insight-tag">Insight 2 · Conversión</div>
+        <div class="insight-title">Ventana de Oro de Conversión: 10h–16h</div>
+        <div class="insight-body">
+          El <strong>60% de las compras</strong> ocurre entre las 10h y las 21h, con un pico máximo a las <strong>14h–16h</strong>. El lunes y martes concentran el mayor volumen semanal.
+        </div>
+        <span class="insight-metric">Acción: Campañas email/push a las 13:30h lunes</span>
+      </div>
+
+      <div class="insight success">
+        <div class="insight-tag">Insight 3 · Cross-sell</div>
+        <div class="insight-title">SP Concentra el 42% — Priorizar Logística</div>
+        <div class="insight-body">
+          São Paulo, Río de Janeiro y Minas Gerais juntos representan el <strong>70% del volumen total</strong>. Expandirse antes de consolidar estos polos es un riesgo logístico y financiero evitable.
+        </div>
+        <span class="insight-metric">Acción: Foco logístico en SP+RJ+MG antes de escalar</span>
+      </div>
+
+      <div class="insight">
+        <div class="insight-tag">Insight 4 · Cuotas</div>
+        <div class="insight-title">Más Cuotas = Mayor Ticket Promedio</div>
+        <div class="insight-body">
+          Los clientes que compran en <strong>6 cuotas</strong> gastan un promedio de <strong>R$235</strong> vs. R$132 en pago único (+78%). Promover financiamiento incrementa el ticket sin reducir el volumen.
+        </div>
+        <span class="insight-metric">Acción: Destacar opción "6 cuotas sin interés" en checkout</span>
+      </div>
+
+      <div class="insight warn">
+        <div class="insight-tag">Insight 5 · Lealtad</div>
+        <div class="insight-title">Solo 0.5% de Clientes Vuelve al Mes Siguiente</div>
+        <div class="insight-body">
+          El análisis de cohortes revela que la retención mensual promedio es <strong>≈0.5%</strong>. El 96% de los clientes son compradores únicos, lo que señala una oportunidad crítica de fidelización.
+        </div>
+        <span class="insight-metric">Acción: Programa de segunda compra con incentivo temporal</span>
+      </div>
+
+      <div class="insight success">
+        <div class="insight-tag">Insight 6 · Asociación</div>
+        <div class="insight-title">Cama/Baño → Decoración: Par Más Rentable</div>
+        <div class="insight-body">
+          El par <strong>Cama/Mesa/Baño + Muebles/Decoración</strong> aparece en 70 co-compras. Implementar recomendación automática post-compra puede capturar este comportamiento latente.
+        </div>
+        <span class="insight-metric">Acción: Email post-compra con recomendación de categoría</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ SEGMENTACIÓN RFM ══════════════════════════════════ -->
+  <section>
+    <div class="section-title">Segmentación RFM — K-Means (k=4)</div>
+    <div class="g4">
+
+      <div class="seg-card">
+        <div class="seg-top">
+          <div class="seg-name">Activos Recientes</div>
+          <span class="seg-pill pill-green">55.8%</span>
+        </div>
+        <div class="seg-metrics">
+          <div><div class="seg-m-label">Clientes</div><div class="seg-m-val">51.366</div></div>
+          <div><div class="seg-m-label">Recencia</div><div class="seg-m-val">127d</div></div>
+          <div><div class="seg-m-label">Ticket</div><div class="seg-m-val">R$199</div></div>
+        </div>
+        <div class="seg-action"><strong>Acción:</strong> Campaña de segunda compra con descuento del 10% válido 72h</div>
+      </div>
+
+      <div class="seg-card">
+        <div class="seg-top">
+          <div class="seg-name">Clientes Fieles</div>
+          <span class="seg-pill pill-blue">3.0%</span>
+        </div>
+        <div class="seg-metrics">
+          <div><div class="seg-m-label">Clientes</div><div class="seg-m-val">2.738</div></div>
+          <div><div class="seg-m-label">Frecuencia</div><div class="seg-m-val">2.1×</div></div>
+          <div><div class="seg-m-label">Ticket</div><div class="seg-m-val">R$430</div></div>
+        </div>
+        <div class="seg-action"><strong>Acción:</strong> Programa de lealtad: puntos, envío prioritario, acceso anticipado</div>
+      </div>
+
+      <div class="seg-card">
+        <div class="seg-top">
+          <div class="seg-name">En Riesgo / Dormidos</div>
+          <span class="seg-pill pill-warn">41.2%</span>
+        </div>
+        <div class="seg-metrics">
+          <div><div class="seg-m-label">Clientes</div><div class="seg-m-val" style="color:var(--warn)">37.957</div></div>
+          <div><div class="seg-m-label">Recencia</div><div class="seg-m-val" style="color:var(--warn)">386d</div></div>
+          <div><div class="seg-m-label">Ticket</div><div class="seg-m-val">R$200</div></div>
+        </div>
+        <div class="seg-action"><strong>Acción:</strong> Email "Te echamos de menos" · 15% OFF + envío gratis &gt;R$150</div>
+      </div>
+
+      <div class="seg-card">
+        <div class="seg-top">
+          <div class="seg-name">Clientes VIP</div>
+          <span class="seg-pill pill-danger">&lt;0.1%</span>
+        </div>
+        <div class="seg-metrics">
+          <div><div class="seg-m-label">Clientes</div><div class="seg-m-val">20</div></div>
+          <div><div class="seg-m-label">Frecuencia</div><div class="seg-m-val">1.2×</div></div>
+          <div><div class="seg-m-label">Ticket</div><div class="seg-m-val" style="color:var(--success)">R$27.734</div></div>
+        </div>
+        <div class="seg-action"><strong>Acción:</strong> Account manager dedicado + beneficios premium exclusivos</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ RETENCIÓN POR FLETE + CUOTAS ══════════════════════ -->
+  <section>
+    <div class="section-title">Factores de Retención y Monetización</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Tasa de Retención según Costo de Envío</div>
+        <div class="chart-wrap"><canvas id="freightChart" height="220"></canvas></div>
+        <div class="chart-caption">Fuente: freight_value promedio por cliente · retención = ≥2 órdenes</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ticket Promedio por Número de Cuotas</div>
+        <div class="chart-wrap"><canvas id="instChart" height="220"></canvas></div>
+        <div class="chart-caption">Fuente: payment_installments vs. payment_value</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ REGLAS DE ASOCIACIÓN ═══════════════════════════════ -->
+  <section>
+    <div class="section-title">Reglas de Asociación — Motor de Recomendaciones Post-Compra</div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Categoría Comprada (A)</th>
+            <th>Categoría Recomendada (B)</th>
+            <th style="width:120px">Lift</th>
+            <th>Soporte (co-compras)</th>
+            <th>Acción de Marketing</th>
+          </tr>
+        </thead>
+        <tbody id="rulesBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ DISEÑO DE CAMPAÑA ══════════════════════════════════ -->
+  <section>
+    <div class="section-title">Diseño de Campaña · Reactivación de Clientes Dormidos</div>
+    <div class="g3">
+      <div class="card">
+        <div class="card-title">Paso 1 — Comunicación</div>
+        <table style="margin-top:4px">
+          <tbody>
+            <tr><td style="color:var(--muted);width:90px">Segmento</td><td>37.957 clientes dormidos (Cluster 1)</td></tr>
+            <tr><td style="color:var(--muted)">Canal</td><td>Email personalizado + SMS recordatorio</td></tr>
+            <tr><td style="color:var(--muted)">Timing</td><td>Lunes/Martes · 13:30h</td></tr>
+            <tr><td style="color:var(--muted)">Asunto</td><td>"Han pasado {X} días — tu descuento te espera"</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Paso 2 — Incentivo</div>
+        <table style="margin-top:4px">
+          <tbody>
+            <tr><td style="color:var(--muted);width:90px">Oferta</td><td>15% OFF + envío gratis en compras &gt;R$150</td></tr>
+            <tr><td style="color:var(--muted)">Categoría</td><td>Misma de su última compra + recomendación</td></tr>
+            <tr><td style="color:var(--muted)">Validez</td><td>72 horas (urgencia programada)</td></tr>
+            <tr><td style="color:var(--muted)">Formato</td><td>Dinámico con nombre del cliente</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Paso 3 — Métricas a Monitorear</div>
+        <table style="margin-top:4px">
+          <tbody>
+            <tr><td style="color:var(--muted);width:110px">KPI Principal</td><td>Tasa de reactivación (%)</td></tr>
+            <tr><td style="color:var(--muted)">CTR objetivo</td><td>&gt;5% (clic en email)</td></tr>
+            <tr><td style="color:var(--muted)">Conversión</td><td>&gt;2% (compra en 72h)</td></tr>
+            <tr><td style="color:var(--muted)">Ventana medir</td><td>30 días post-envío</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SIMULACIÓN DE IMPACTO ══════════════════════════════ -->
+  <section>
+    <div class="section-title">Simulación de Impacto Financiero · Campaña Reactivación</div>
+    <div class="g2-1">
+      <div class="card">
+        <div class="card-title">ROI Proyectado por Tasa de Conversión</div>
+        <div class="chart-wrap"><canvas id="roiChart" height="220"></canvas></div>
+        <div class="chart-caption">Supuestos: ticket R$200 · 15% descuento · costo email R$2.5/cliente · 37.957 clientes</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tabla de Escenarios</div>
+        <div style="overflow:auto">
+          <div class="sim-row">
+            <div class="sim-cell head">Conversión</div>
+            <div class="sim-cell head">Reactivados</div>
+            <div class="sim-cell head">Ingresos</div>
+            <div class="sim-cell head">Costo</div>
+            <div class="sim-cell head">Ganancia</div>
+            <div class="sim-cell head">ROI</div>
+          </div>
+          <div id="simRows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ AUTOMATIZACIÓN ══════════════════════════════════════ -->
+  <section>
+    <div class="section-title">Propuesta de Automatización del Motor de Recomendaciones</div>
+    <div class="g4">
+      <div class="insight">
+        <div class="insight-tag">Paso 1 · Trigger</div>
+        <div class="insight-title">Evento de Pago Aprobado</div>
+        <div class="insight-body">Al confirmar order_status = 'approved', extraer product_category_name de la orden.</div>
+      </div>
+      <div class="insight success">
+        <div class="insight-tag">Paso 2 · Motor</div>
+        <div class="insight-title">Consulta a Motor de Reglas</div>
+        <div class="insight-body">API interna consulta recommendation_engine.csv → retorna top-3 categorías por lift.</div>
+      </div>
+      <div class="insight warn">
+        <div class="insight-tag">Paso 3 · Comunicación</div>
+        <div class="insight-title">Email Post-Compra (−2h)</div>
+        <div class="insight-body">Enviar email personalizado dentro de las 2h siguientes — ventana de atención activa máxima.</div>
+      </div>
+      <div class="insight danger">
+        <div class="insight-tag">Paso 4 · Medición</div>
+        <div class="insight-title">Registro de Conversión</div>
+        <div class="insight-body">Monitorear segunda compra en 72h post-email. A/B test durante 60 días antes de escalar.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Dashboard generado automáticamente · Brazilian E-Commerce Public Dataset · BIY7121 Minería de Datos · 2026
+</footer>
+
+<script>
+/* ── COLORES BASE ─────────────────────────────────────────── */
+const C = {
+  accent:  '#4f7df3',
+  accent2: '#38c4a8',
+  warn:    '#f59e0b',
+  danger:  '#ef4444',
+  success: '#22c55e',
+  muted:   '#8892aa',
+  border:  '#2e3350',
+  grid:    'rgba(46,51,80,.6)',
+  text:    '#e2e8f0',
+};
+
+const defaultGrid = {
+  color: C.grid,
+  drawBorder: false,
+};
+const defaultTick = { color: C.muted, font: { size: 11 } };
+Chart.defaults.color = C.muted;
+
+/* ── DATOS ────────────────────────────────────────────────── */
+const revenueLabels = ['Oct-16','Ene-17','Feb-17','Mar-17','Abr-17','May-17','Jun-17','Jul-17','Ago-17','Sep-17','Oct-17','Nov-17','Dic-17','Ene-18','Feb-18','Mar-18','Abr-18','May-18','Jun-18','Jul-18','Ago-18'];
+const revenueData   = [62496,172487,313470,496732,444458,687146,577595,711169,835080,985553,972010,1530816,1001836,1342632,1262342,1412278,1456300,1475250,1282453,1300182,1208201];
+
+const stateLabels = ['SP','RJ','MG','RS','PR','SC','BA','DF'];
+const stateData   = [47830,14651,13234,6284,5790,4161,3859,2389];
+
+const catLabels = ['Cama/Mesa/Baño','Belleza/Salud','Deporte/Ocio','Muebles/Dec.','Informática','Utensilios','Relojes/Regalos','Telefonía'];
+const catData   = [11649,9761,8731,8553,7897,7172,6063,4601];
+
+const dayLabels = ['Lun','Mar','Mié','Jue','Vie','Dom','Sáb'];
+const dayData   = [18458,18414,17731,16918,16187,13440,12242];
+
+const hourLabels = ['00h','01h','02h','03h','04h','05h','06h','07h','08h','09h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h','23h'];
+const hourData   = [2791,1290,592,302,248,209,537,1366,3422,5443,7049,7489,6876,7387,7630,7360,7694,6979,6585,6759,7012,6963,6671,4736];
+const hourColors = hourLabels.map((_,i) => (i>=10 && i<=16) ? C.accent : C.muted+'55');
+
+const freightLabels = ['R$0-10','R$10-20','R$20-30','R$30-50','R$50+'];
+const freightData   = [2.28,3.17,3.10,3.27,1.46];
+const freightColors = freightData.map(v => v < 2 ? C.danger : v >= 3 ? C.success : C.accent2);
+
+const instLabels = ['1 cuota','2 cuotas','3 cuotas','4 cuotas','5 cuotas','6 cuotas'];
+const instData   = [131.97,134.18,153.30,179.78,196.27,234.76];
+
+/* ── GRÁFICO INGRESOS ─────────────────────────────────────── */
+new Chart(document.getElementById('revChart'), {
+  type: 'line',
+  data: {
+    labels: revenueLabels,
+    datasets: [{
+      label: 'Ingresos (R$)',
+      data: revenueData,
+      borderColor: C.accent,
+      backgroundColor: C.accent + '18',
+      tension: .35,
+      fill: true,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: defaultGrid, ticks: { ...defaultTick, maxRotation: 45 } },
+      y: { grid: defaultGrid, ticks: { ...defaultTick, callback: v => 'R$' + (v/1e6).toFixed(1) + 'M' } }
+    }
+  }
+});
+
+/* ── GRÁFICO PAGOS ────────────────────────────────────────── */
+new Chart(document.getElementById('payChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Tarjeta Crédito','Boleto','Voucher','Débito'],
+    datasets: [{
+      data: [83706,22047,6012,1625],
+      backgroundColor: [C.accent, C.accent2, C.warn, C.muted],
+      borderWidth: 0,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: C.muted, font:{size:11}, padding:12, boxWidth:12 } }
+    }
+  }
+});
+
+/* ── ESTADOS ──────────────────────────────────────────────── */
+new Chart(document.getElementById('stateChart'), {
+  type: 'bar',
+  data: {
+    labels: stateLabels,
+    datasets: [{
+      label: 'Órdenes',
+      data: stateData,
+      backgroundColor: stateLabels.map(s => s==='SP' ? C.accent : C.accent+'55'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display:false }, ticks: defaultTick },
+      y: { grid: defaultGrid, ticks: { ...defaultTick, callback: v => v.toLocaleString('es') } }
+    }
+  }
+});
+
+/* ── CATEGORÍAS ───────────────────────────────────────────── */
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: {
+    labels: catLabels,
+    datasets: [{
+      label: 'Unidades',
+      data: catData,
+      backgroundColor: C.accent2 + 'bb',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: defaultGrid, ticks: defaultTick },
+      y: { grid: { display:false }, ticks: { ...defaultTick, font:{size:11} } }
+    }
+  }
+});
+
+/* ── DÍAS ─────────────────────────────────────────────────── */
+new Chart(document.getElementById('dayChart'), {
+  type: 'bar',
+  data: {
+    labels: dayLabels,
+    datasets: [{
+      label: 'Órdenes',
+      data: dayData,
+      backgroundColor: dayLabels.map((d,i) => i<2 ? C.accent : C.accent+'44'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display:false }, ticks: defaultTick },
+      y: { grid: defaultGrid, ticks: defaultTick }
+    }
+  }
+});
+
+/* ── HORAS ────────────────────────────────────────────────── */
+new Chart(document.getElementById('hourChart'), {
+  type: 'bar',
+  data: {
+    labels: hourLabels,
+    datasets: [{
+      label: 'Órdenes',
+      data: hourData,
+      backgroundColor: hourColors,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { footer: items => items[0].dataIndex>=10 && items[0].dataIndex<=16 ? '★ Ventana pico' : '' } }
+    },
+    scales: {
+      x: { grid: { display:false }, ticks: { ...defaultTick, maxRotation: 45 } },
+      y: { grid: defaultGrid, ticks: defaultTick }
+    }
+  }
+});
+
+/* ── FLETE ────────────────────────────────────────────────── */
+new Chart(document.getElementById('freightChart'), {
+  type: 'bar',
+  data: {
+    labels: freightLabels,
+    datasets: [{
+      label: 'Retención (%)',
+      data: freightData,
+      backgroundColor: freightColors,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display:false }, ticks: defaultTick },
+      y: {
+        grid: defaultGrid,
+        ticks: { ...defaultTick, callback: v => v + '%' },
+        max: 4.5
+      }
+    }
+  }
+});
+
+/* ── CUOTAS ───────────────────────────────────────────────── */
+new Chart(document.getElementById('instChart'), {
+  type: 'bar',
+  data: {
+    labels: instLabels,
+    datasets: [{
+      label: 'Ticket Promedio (R$)',
+      data: instData,
+      backgroundColor: instLabels.map((_,i) => {
+        const t = i / (instLabels.length - 1);
+        return `rgba(79,125,243,${0.35 + t*0.65})`;
+      }),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display:false }, ticks: defaultTick },
+      y: { grid: defaultGrid, ticks: { ...defaultTick, callback: v => 'R$' + v } }
+    }
+  }
+});
+
+/* ── REGLAS DE ASOCIACIÓN ─────────────────────────────────── */
+const rules = [
+  { a:'Cama/Mesa/Baño', b:'Muebles/Decoración', lift:3.8, soporte:70, accion:'Bundle hogar: ropa de cama + decoración' },
+  { a:'Cama/Mesa/Baño', b:'Casa Confort',        lift:3.2, soporte:43, accion:'Pack hogar completo' },
+  { a:'Bebés',          b:'Juguetes',             lift:4.5, soporte:19, accion:'Campaña crianza infantil' },
+  { a:'Muebles/Dec.',   b:'Utensilios Hogar',     lift:2.9, soporte:24, accion:'Pack amueblamiento + cocina' },
+  { a:'Belleza/Salud',  b:'Deporte/Ocio',         lift:2.4, soporte:14, accion:'Pack bienestar activo' },
+];
+const maxSoporte = Math.max(...rules.map(r=>r.soporte));
+const tbody = document.getElementById('rulesBody');
+rules.forEach(r => {
+  const pct = (r.soporte / maxSoporte * 100).toFixed(0);
+  tbody.innerHTML += `
+    <tr>
+      <td>${r.a}</td>
+      <td style="color:var(--accent2)">${r.b}</td>
+      <td>
+        <div class="lift-bar">
+          <div class="lift-track"><div class="lift-fill" style="width:${r.lift/5*100}%"></div></div>
+          <span style="font-size:12px;font-weight:700;color:var(--text)">${r.lift.toFixed(1)}</span>
+        </div>
+      </td>
+      <td>
+        <div class="lift-bar">
+          <div class="lift-track"><div class="lift-fill" style="width:${pct}%;background:var(--warn)"></div></div>
+          <span style="font-size:12px;color:var(--muted)">${r.soporte}</span>
+        </div>
+      </td>
+      <td style="color:var(--muted)">${r.accion}</td>
+    </tr>`;
+});
+
+/* ── SIMULACIÓN ROI ───────────────────────────────────────── */
+const tasas    = [0.01,0.02,0.03,0.04,0.05,0.06,0.07];
+const nTotal   = 37957;
+const ticket   = 200;
+const descuento = 0.85;
+const costoPorCliente = 2.5;
+const costoTotal = nTotal * costoPorCliente;
+
+const simLabels = tasas.map(t => (t*100).toFixed(0)+'%');
+const roiData   = tasas.map(t => {
+  const conv = Math.round(nTotal*t);
+  const ing  = conv * ticket * descuento;
+  return +((ing - costoTotal) / costoTotal * 100).toFixed(1);
+});
+
+new Chart(document.getElementById('roiChart'), {
+  type: 'bar',
+  data: {
+    labels: simLabels,
+    datasets: [{
+      label: 'ROI (%)',
+      data: roiData,
+      backgroundColor: roiData.map(v => v >= 0 ? C.success : C.danger),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display:false } },
+    scales: {
+      x: { grid:{ display:false }, ticks: defaultTick },
+      y: {
+        grid: defaultGrid,
+        ticks: { ...defaultTick, callback: v => v+'%' }
+      }
+    }
+  }
+});
+
+const simContainer = document.getElementById('simRows');
+tasas.forEach(t => {
+  const conv  = Math.round(nTotal * t);
+  const ing   = +(conv * ticket * descuento).toFixed(0);
+  const gan   = +(ing - costoTotal).toFixed(0);
+  const roi   = +((gan / costoTotal)*100).toFixed(1);
+  const roiCls = roi >= 0 ? 'roi-pos' : 'roi-neg';
+  simContainer.innerHTML += `
+    <div class="sim-row">
+      <div class="sim-cell">${(t*100).toFixed(0)}%</div>
+      <div class="sim-cell">${conv.toLocaleString('es')}</div>
+      <div class="sim-cell">R$${ing.toLocaleString('es')}</div>
+      <div class="sim-cell">R$${Math.round(costoTotal).toLocaleString('es')}</div>
+      <div class="sim-cell ${roiCls}">R$${gan.toLocaleString('es')}</div>
+      <div class="sim-cell ${roiCls}">${roi}%</div>
+    </div>`;
+});
+</script>
+</body>
+</html>
